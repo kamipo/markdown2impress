@@ -76,11 +76,12 @@ sub run {
     output_static_files( $opts{ outputdir } );
     my $outputfile = 'index.html';
     $outputfile = File::Spec->catfile( $opts{ outputdir }, $outputfile );
-    my $content = parse_markdown( join '', file( $mdfile )->slurp );
+    my ($title, $content) = parse_markdown( join '', file( $mdfile )->slurp );
 
     my $index_html = get_data_section( 'index.html' );
     my $tx = Text::Xslate->new;
     my $output = $tx->render_string( $index_html, {
+        title   => mark_raw( $title ),
         content => mark_raw( $content ),
     } );
     my $outputfile_fh = file( $outputfile )->open( 'w' ) or die $!;
@@ -91,6 +92,7 @@ sub run {
 
 sub parse_markdown {
     my $md = shift;
+    my $title;
     my $content;
     my @sections;
     while ( $md =~ /$SectionRe/g ) {
@@ -111,6 +113,7 @@ sub parse_markdown {
         }
         if ( !defined $attrs{ id } && $x == 0 && $y == 0 ) {
             $attrs{ id } = 'title'; # for first presentation
+            ($title) = ($section =~ m/(.+)[ \t]*\n[-=]+[ \t]*\n*/);
         }
         unless ( defined $attrs{ 'data-x' } ) {
             $attrs{ 'data-x' } = $x;
@@ -141,7 +144,7 @@ HTML
         ;
         $bored = undef;
     }
-    return $content;
+    return ($title, $content);
 }
 
 sub output_static_files {
